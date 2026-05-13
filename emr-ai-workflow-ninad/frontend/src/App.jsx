@@ -17,7 +17,10 @@ function App() {
   useEffect(() => {
     fetch(`http://localhost:8000/api/notes/${patient.id}`)
       .then(res => res.json())
-      .then(data => setHistory(data.notes || []))
+      .then(data => {
+        setHistory(data.notes || []);
+       // console.log("Fetched history:", data.notes[0].soap_content);
+      })
       .catch(err => console.error("Failed to fetch history:", err));
   }, []);
 
@@ -232,23 +235,56 @@ function App() {
         <section className="mt-10 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900 mb-4 tracking-tight">Visit History</h2>
           
-          {history.length === 0 ? (
-            <p className="text-slate-500 italic">No previous notes found in the database.</p>
-          ) : (
-            <div className="flex flex-wrap gap-x-6 gap-y-3">
-              {history.map((note) => (
-                <div key={note.id} className="flex items-center text-sm bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-md text-slate-600">
-                  <span className="bg-[#5c8599] text-white text-xs font-bold px-2 py-0.5 rounded mr-2">Note {note.id}</span>
-                  <span className="mr-2 border-r border-slate-300 pr-2">
-                    {new Date(note.saved_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                  </span>
-                  <span className="mr-2 border-r border-slate-300 pr-2">{clinician.name}</span>
-                  <span className="mr-2">AI SOAP</span>
-                  <span className="bg-[#dcf0d9] text-[#2f6e2b] text-xs font-bold px-2 py-0.5 rounded ml-2 border border-[#bce0b8]">Saved</span>
-                </div>
-              ))}
-            </div>
-          )}
+         {history.length === 0 ? (
+  <p className="text-slate-500 italic">No previous notes found in the database.</p>
+) : (
+  <div className="flex flex-col gap-y-3">
+    {history.map((note) => {
+      // 1. Safely parse the JSON before rendering so the app never crashes
+      let parsedNote = {};
+      try {
+        parsedNote = JSON.parse(note.soap_content || "{}");
+      } catch (err) {
+        console.error("Could not parse note data for Note ID:", note.id);
+      }
+
+      return (
+        <div key={note.id} className="flex flex-col text-sm bg-slate-50 border border-slate-200 p-3 rounded-md text-slate-600 w-full">
+          
+          {/* Top Row: Badges and Timestamps */}
+          <div className="flex items-center mb-2">
+            <span className="bg-[#5c8599] text-white text-xs font-bold px-2 py-0.5 rounded mr-3">
+              Note {note.id}
+            </span>
+            <span className="mr-3 border-r border-slate-300 pr-3">
+              {new Date(note.saved_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+            </span>
+            <span className="mr-3 border-r border-slate-300 pr-3">{clinician.name}</span>
+            <span className="mr-3">AI SOAP</span>
+            <span className="bg-[#dcf0d9] text-[#2f6e2b] text-xs font-bold px-2 py-0.5 rounded ml-auto border border-[#bce0b8]">
+              Saved
+            </span>
+          </div>
+
+          {/* Bottom Row: Subjective Text Preview */}
+          <div className="text-slate-500 italic truncate w-full">
+            <span className="font-semibold not-italic text-slate-700 mr-1">Subjective Preview:</span> 
+            {parsedNote.subjective || "No subjective data saved."}
+          </div>
+            <div className="text-slate-500 italic truncate w-full">
+            <span className="font-semibold not-italic text-slate-700 mr-1">Assessment Preview:</span> 
+            {parsedNote.assessment || "No assessment data saved."}
+          </div>
+          <div className="text-slate-500 italic truncate w-full">
+            <span className="font-semibold not-italic text-slate-700 mr-1">Plan Preview:</span> 
+            {parsedNote.plan || "No plan data saved."}
+          </div>
+
+        </div>
+      );
+    })}
+  </div>
+)}
         </section>
 
       </main>
